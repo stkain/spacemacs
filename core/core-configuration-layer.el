@@ -2560,26 +2560,14 @@ Original code from dochang at https://github.com/dochang/elpa-clone"
 (defun configuration-layer//executable-not-found-error (exec &optional msg)
   "Display a generic error message about not found EXECutable file.
 
-
-Returns non nil if the tarball has been downloaded.
-Returns nil if an error happened during the download."
-  (let ((result t)
-        (url (configuration-layer//stable-elpa-tarball-distant-file))
-        (local (configuration-layer//stable-elpa-tarball-local-file))
-        (url-sig (configuration-layer//stable-elpa-tarball-distant-sig-file))
-        (local-sig (configuration-layer//stable-elpa-tarball-local-sig-file)))
-    (spacemacs-buffer/set-mode-line
-     (format (concat "Downloading stable ELPA repository: %s... "
-                     "(please wait, this might take several minutes)")
-             configuration-layer-stable-elpa-name) t)
-    (make-directory configuration-layer-stable-elpa-base-directory t)
-    (setq result
-          (and (or (file-exists-p local)
-                   (configuration-layer//stable-elpa-download url local))
-               (or (file-exists-p local-sig)
-                   (configuration-layer//stable-elpa-download url-sig
-                                                              local-sig))))
-    result))
+MSG is an additional message append to the generic error."
+  (when (null msg) (setq msg ""))
+  (configuration-layer//error
+   (format
+    (concat
+     "Cannot find %s executable in your PATH.\n"
+     "Verify your spacemacs environment variables with [SPC f e e].%s\n"
+     "Spacelpa installation has been skipped!") exec msg)))
 
 ;; (configuration-layer/create-elpa-repository
 ;;  "spacelpa"

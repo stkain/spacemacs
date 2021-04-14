@@ -1,6 +1,6 @@
 ;;; funcs.el --- Spacemacs Navigation Layer functions File
 ;;
-;; Copyright (c) 2012-2018 Sylvain Benner & Contributors
+;; Copyright (c) 2012-2020 Sylvain Benner & Contributors
 ;;
 ;; Author: Sylvain Benner <sylvain.benner@gmail.com>
 ;; URL: https://github.com/syl20bnr/spacemacs
@@ -138,7 +138,7 @@ If the universal prefix argument is used then kill also the window."
   (spacemacs/ahs-highlight-now-wrapper)
   (setq spacemacs-last-ahs-highlight-p (ahs-highlight-p))
   (spacemacs/symbol-highlight-transient-state/body)
-  (spacemacs/integrate-evil-search nil))
+  (spacemacs/integrate-evil-search t))
 
 (defun spacemacs//ahs-ts-on-exit ()
   ;; Restore user search direction state as ahs has exitted in a state
@@ -258,16 +258,17 @@ If the universal prefix argument is used then kill also the window."
 
 ;; ace-link
 
-(defvar spacemacs--link-pattern "~?/.+\\|\s\\[")
-
 (defun spacemacs//collect-spacemacs-buffer-links ()
-  (let ((end (window-end))
-        points)
+  "Return a list of widget-button positions."
+  (let (widget-button-positions)
     (save-excursion
       (goto-char (window-start))
-      (while (re-search-forward spacemacs--link-pattern end t)
-        (push (+ (match-beginning 0) 1) points))
-      (nreverse points))))
+      (while (< (point) (window-end))
+        (when (eq (car (get-char-property-and-overlay (point) 'face))
+                  'widget-button)
+          (push (point) widget-button-positions))
+        (goto-char (next-overlay-change (point)))))
+    (nreverse widget-button-positions)))
 
 (defun spacemacs/ace-buffer-links ()
   "Ace jump to links in `spacemacs' buffer."
@@ -317,11 +318,16 @@ When ARG is non-nil search in junk files."
          (rel-fname (file-name-nondirectory fname))
          (junk-dir (file-name-directory fname))
          (default-directory junk-dir))
+    (make-directory junk-dir t)
     (cond ((and arg (configuration-layer/layer-used-p 'ivy))
            (spacemacs/counsel-search dotspacemacs-search-tools nil junk-dir))
           ((configuration-layer/layer-used-p 'ivy)
            (require 'counsel)
-           (counsel-find-file rel-fname))
+           ;; HACK: If major-mode is dired, counsel will use
+           ;; (dired-current-directory) instead of default-directory. So, trick
+           ;; counsel by shadowing major-mode.
+           (let ((major-mode nil))
+             (counsel-find-file rel-fname)))
           (arg
            (require 'helm)
            (let (helm-ff-newfile-prompt-p)
